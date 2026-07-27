@@ -26,6 +26,24 @@
 </header>
 
 <main class="wrap">
+  <section id="onboard" class="card onboard-card">
+    <h3 class="onboard-title">실험 참여 정보</h3>
+    <div class="field">
+      <label for="pid">참가자 코드</label>
+      <input id="pid" type="text" placeholder="예) P07" class="onboard-input" />
+    </div>
+    <div class="field">
+      <label class="onboard-label">배운 데까지 골라줘</label>
+      <div class="onboard-checks">
+        <label><input type="checkbox" value="basic"> 기본 적분공식</label>
+        <label><input type="checkbox" value="substitution"> 치환적분</label>
+        <label><input type="checkbox" value="byparts"> 부분적분</label>
+        <label><input type="checkbox" value="partialfrac"> 부분분수 분해</label>
+      </div>
+    </div>
+    <button id="onboardSave" class="btn btn-primary">시작하기</button>
+  </section>
+
   <section class="card composer">
     <div class="field problem-field">
       <label>문제 사진</label>
@@ -52,7 +70,7 @@
     </div>
     <div class="field">
       <label for="stuck">내가 막힌 지점 <span class="opt">선택</span></label>
-      <p class="help">🗣️ <b>말로 설명해도 돼요</b> — “미분해서 0으로 놓고 풀었는데 그다음이 막혀”처럼. AI가 <b>수식으로 바꿔서</b> 위에 ‘📖 내가 읽은 식’으로 확인해줘요. (수식 타이핑 <code>x^2</code>·<code>sqrt(x)</code>·<code>f'(x)</code>도 OK)</p>
+      <p class="help">🗣️ <b>말로 설명해도 돼요</b> — "미분해서 0으로 놓고 풀었는데 그다음이 막혀"처럼. AI가 <b>수식으로 바꿔서</b> 위에 '📖 내가 읽은 식'으로 확인해줘요. (수식 타이핑 <code>x^2</code>·<code>sqrt(x)</code>·<code>f'(x)</code>도 OK)</p>
       <textarea id="stuck" rows="3" placeholder="예) 미분해서 기울기 0인 데를 찾았는데, 봉우리인지 골짜기인지 판별을 못 하겠어."></textarea>
       <div class="symbolbar" id="symbolbar"></div>
       <div class="mprev hidden" id="stuckPrev"></div>
@@ -72,7 +90,10 @@
   <section id="mistakeNote" class="card mistake-note hidden" aria-live="polite">
     <div class="mn-head">
       <span class="mn-title">📊 내 실수 노트 <span class="mn-tag">이 기기에 누적 · 코칭 반영</span></span>
-      <button id="mnClear" class="btn btn-ghost btn-sm">기록 지우기</button>
+      <div class="mn-head-btns">
+        <button id="mnExport" class="btn btn-ghost btn-sm">실험 데이터 내보내기</button>
+        <button id="mnClear" class="btn btn-ghost btn-sm">기록 지우기</button>
+      </div>
     </div>
     <p id="mnSummary" class="mn-summary"></p>
     <div id="mnViz"></div>
@@ -104,6 +125,9 @@
 </main>
 
 <footer class="wrap site-footer"><p>풀이 방향 코칭 · 정답은 직접 완성해요. 그림은 핵심 직관용이에요.</p></footer>
+<script src="./evidence.js"></script>
+<script src="./verify.js"></script>
+<script src="./episode.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>
