@@ -42,6 +42,7 @@ let convo = [];            // [{role:'user'|'model', text, image?}] — Gemini�
 let problemImage = null;   // 문제 사진 {mimeType, data(base64), url} — 첫 메시지에 실어 보냄
 let imageJob = null;       // 사진 압축이 끝나기 전 제출되는 경우를 막기 위한 대기 작업
 let requestBusy = false;   // 중복 클릭으로 같은 요청이 여러 번 나가는 것 방지
+let _selectedStage = null; // 학생이 선택한 ZPD 단계 (stage-picker 버튼)
 
 // 코치 응답(d) → 다음 호출에 실어 보낼 'model' 턴 텍스트.
 // 토큰 절약: 이어가기에 꼭 필요한 '진단 + 직전에 시킨 다음 걸음'만 남긴다.
@@ -75,7 +76,8 @@ const composeFirst = (problem, stuck) => {
   const prereqPrior = K.includes(tech) ? "ok" : "unknown";
   const vf   = tryVerify(problem, stuck);
   const weak = weaknessText();
-  return `[문제]\n${problem.trim() || "(첨부한 사진의 문제를 풀고 있어.)"}\.\n\n[내가 풀다가 막힌 지점]\n${stuck.trim() || "(아직 못 풀었어. 어디서 시작해야 할지 모르겠어.)"}\.\n\n[코드 판정]\ntechnique: ${tech}\nevidence: goal=${Y(ev.goal)} method=${Y(ev.method)} expr=${Y(ev.expr)} partial=${Y(ev.partial)} answer=${Y(ev.answer)}\nverify: ${vf}\nprereq_prior: ${prereqPrior}${weak ? "\n\n" + weak : ""}`;
+  const stagePart = _selectedStage ? `\nselected_stage: ${_selectedStage}` : "";
+  return `[문제]\n${problem.trim() || "(첨부한 사진의 문제를 풀고 있어.)"}\.\n\n[내가 풀다가 막힌 지점]\n${stuck.trim() || "(아직 못 풀었어. 어디서 시작해야 할지 모르겠어.)"}\.\n\n[코드 판정]\ntechnique: ${tech}\nevidence: goal=${Y(ev.goal)} method=${Y(ev.method)} expr=${Y(ev.expr)} partial=${Y(ev.partial)} answer=${Y(ev.answer)}\nverify: ${vf}\nprereq_prior: ${prereqPrior}${stagePart}${weak ? "\n\n" + weak : ""}`;
 };
 
 async function askConvo() {
@@ -129,6 +131,14 @@ const MISTAKE_TYPES = {
 const STAGE_LABELS = {
   nostart: "시작 전", comprehension: "문제 이해",
   transform: "방법 선택", process: "계산 진행", encoding: "표기·검산",
+};
+const STAGE_PLACEHOLDERS = {
+  nostart: "예) 어디서 시작해야 할지 모르겠어.",
+  comprehension: "예) 문제에서 구하는 게 뭔지 잘 모르겠어.",
+  transform: "예) 치환적분인지 부분적분인지 어떤 방법을 써야 할지 모르겠어.",
+  process: "예) 미분해서 0으로 놓고 풀었는데 그 다음이 막혀.",
+  encoding: "예) 계산은 다 했는데 적분상수 C를 붙여야 하는지 헷갈려.",
+  prerequisite: "예) 부분분수 분해를 어떻게 해야 하는지 모르겠어.",
 };
 const CHAIN_LABELS = { ...STAGE_LABELS, prerequisite: "선행 개념 부족" };
 const CHAIN_HINT_LEN = { nostart: 2, comprehension: 3, transform: 4, process: 3, encoding: 2, prerequisite: 2 };
@@ -342,7 +352,8 @@ function startThread(problem, stuck) {
   $("coach").innerHTML = "";
   const fb = $("followBox");
   if (fb) { fb.classList.add("hidden"); if ($("followup")) $("followup").value = ""; setFollowMsg(""); }
-  const label = "📝 " + (problem.trim() || "(사진 속 문제)") + (stuck.trim() ? `\n— 막힌 곳: ${stuck.trim()}` : "");
+  const stageTag = _selectedStage ? `[${CHAIN_LABELS[_selectedStage] || _selectedStage}] ` : "";
+  const label = "📝 " + stageTag + (problem.trim() || "(사진 속 문제)") + (stuck.trim() ? `\n— 막힌 곳: ${stuck.trim()}` : "");
   appendUserBubble(label, problemImage && problemImage.url);
   $("result").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -701,6 +712,23 @@ function boot() {
   ["symbolbar", "symbolbarFollow"].forEach((barId) => {
     const bar = $(barId);
     if (bar) SYMBOLS.forEach(([label, tok]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.onclick = () => insertToken(tok); bar.appendChild(b); });
+  });
+
+  // 단계 선택 버튼 (stage-picker)
+  const stuckEl = $("stuck");
+  document.querySelectorAll(".stage-btn").forEach((btn) => {
+    btn.onclick = () => {
+      const s = btn.dataset.stage;
+      if (_selectedStage === s) {
+        _selectedStage = null;
+        btn.classList.remove("active");
+        if (stuckEl) stuckEl.placeholder = "예) 어디서 시작해야 할지 모르겠어.";
+      } else {
+        _selectedStage = s;
+        document.querySelectorAll(".stage-btn").forEach((b) => b.classList.toggle("active", b === btn));
+        if (stuckEl) stuckEl.placeholder = STAGE_PLACEHOLDERS[s] || "예) 어디서 시작해야 할지 모르겠어.";
+      }
+    };
   });
 
   // 메인 버튼: 새 문제로 스레드 시작

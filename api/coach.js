@@ -155,6 +155,7 @@ points의 label·title 은 그래프 위 일반 텍스트라 KaTeX가 안 먹는
 [코드 판정 — 반드시 따를 것]
 사용자 메시지에 [코드 판정] 블록이 있으면 그것은 결정론적 코드가 계산한 사실이다.
 다음 제약을 어기지 마라.
+- selected_stage가 있으면 그 값을 stage로 그대로 사용한다. 다른 증거와 충돌해도 selected_stage 우선.
 - evidence.method=Y 이면 stage 를 transform 으로 두지 마라 (기법은 이미 골랐다)
 - evidence.expr=Y 이면 이해·변환 관문은 통과한 것이다
 - evidence 가 전부 N 이면 stage 는 nostart 다

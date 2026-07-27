@@ -48,7 +48,7 @@
     <div class="field problem-field">
       <label>문제 사진</label>
       <p class="help">문제집·시험지를 찍어 올리고, 아래에는 막힌 지점만 적어요.</p>
-      <input type="file" id="probPhotoInput" accept="image/*" capture="environment" hidden />
+      <input type="file" id="probPhotoInput" accept="image/*" hidden />
       <div class="photo-card">
         <button type="button" id="probPhotoBtn" class="photo-upload">
           <span class="photo-icon">📷</span>
@@ -69,9 +69,18 @@
       </details>
     </div>
     <div class="field">
-      <label for="stuck">내가 막힌 지점 <span class="opt">선택</span></label>
-      <p class="help">🗣️ <b>말로 설명해도 돼요</b> — "미분해서 0으로 놓고 풀었는데 그다음이 막혀"처럼. AI가 <b>수식으로 바꿔서</b> 위에 '📖 내가 읽은 식'으로 확인해줘요. (수식 타이핑 <code>x^2</code>·<code>sqrt(x)</code>·<code>f'(x)</code>도 OK)</p>
-      <textarea id="stuck" rows="3" placeholder="예) 미분해서 기울기 0인 데를 찾았는데, 봉우리인지 골짜기인지 판별을 못 하겠어."></textarea>
+      <label>어디서 막혔어? <span class="opt">하나 골라줘 · 안 골라도 돼</span></label>
+      <div class="stage-picker" id="stagePicker">
+        <button type="button" class="stage-btn" data-stage="nostart">시작 못함</button>
+        <button type="button" class="stage-btn" data-stage="comprehension">문제 이해 안 됨</button>
+        <button type="button" class="stage-btn" data-stage="transform">방법 모르겠어</button>
+        <button type="button" class="stage-btn" data-stage="process">계산 중에 막혔어</button>
+        <button type="button" class="stage-btn" data-stage="encoding">검산·표기 헷갈려</button>
+        <button type="button" class="stage-btn" data-stage="prerequisite">기초 개념 부족</button>
+      </div>
+      <label for="stuck" class="stage-detail-label">더 설명해줘 <span class="opt">선택</span></label>
+      <p class="help">🗣️ 말로 설명해도 돼요. AI가 수식으로 바꿔 확인해줘요. 수식 타이핑 <code>x^2</code>·<code>sqrt(x)</code>·<code>f'(x)</code>도 OK</p>
+      <textarea id="stuck" rows="2" placeholder="예) 어디서 시작해야 할지 모르겠어."></textarea>
       <div class="symbolbar" id="symbolbar"></div>
       <div class="mprev hidden" id="stuckPrev"></div>
     </div>
