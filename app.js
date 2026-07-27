@@ -48,10 +48,34 @@ let requestBusy = false;   // 중복 클릭으로 같은 요청이 여러 번 �
 // (그림·힌트·정답·인정 멘트는 이미 화면에 있고, 다음 코칭엔 불필요 → 매 턴 누적 비용 ↓)
 const modelText = (d) =>
   JSON.stringify({ diagnosis: d.diagnosis, next_step: d.next_step });
-// 첫 메시지(문제+막힌 지점) → 'user' 턴 텍스트
+// Y/N 표기 헬퍼
+const Y = (v) => (v ? "Y" : "N");
+
+// 막힌 지점 텍스트에서 답 후보를 추출해 수치검증
+function tryVerify(problem, stuck) {
+  if (typeof verifyIntegral !== "function") return "na";
+  const combined = problem + " " + stuck;
+  const integrandM = combined.match(/∫\s*([^dx∫,;。\n]+)\s*d[xt]/);
+  if (!integrandM) return "na";
+  const integrand = integrandM[1].trim();
+  const withC  = stuck.match(/([^\n=]+\+\s*C)\s*$/);
+  const eqM    = stuck.match(/=\s*([^\n=]+?)\s*(?:\+\s*C\s*)?$/);
+  const cand   = (withC && withC[1]) || (eqM && eqM[1]);
+  if (!cand) return "na";
+  try { return verifyIntegral(cand.trim(), integrand).result; }
+  catch (e) { return "na"; }
+}
+
+// 첫 메시지(문제+막힌 지점) → 'user' 턴 텍스트 (코드 판정 블록 포함)
 const composeFirst = (problem, stuck) => {
+  const tech = typeof guessTechnique === "function" ? guessTechnique(problem) : "other";
+  const ev   = typeof extractEvidence === "function" ? extractEvidence(stuck)
+               : { goal: false, method: false, expr: false, partial: false, answer: false };
+  const K    = typeof loadSelfReport === "function" ? loadSelfReport() : [];
+  const prereqPrior = K.includes(tech) ? "ok" : "unknown";
+  const vf   = tryVerify(problem, stuck);
   const weak = weaknessText();
-  return `[문제]\n${problem.trim() || "(첨부한 사진의 문제를 풀고 있어.)"}\n\n[내가 풀다가 막힌 지점]\n${stuck.trim() || "(아직 못 풀었어. 어디서 시작해야 할지 모르겠어.)"}${weak ? "\n\n" + weak : ""}`;
+  return `[문제]\n${problem.trim() || "(첨부한 사진의 문제를 풀고 있어.)"}\.\n\n[내가 풀다가 막힌 지점]\n${stuck.trim() || "(아직 못 풀었어. 어디서 시작해야 할지 모르겠어.)"}\.\n\n[코드 판정]\ntechnique: ${tech}\nevidence: goal=${Y(ev.goal)} method=${Y(ev.method)} expr=${Y(ev.expr)} partial=${Y(ev.partial)} answer=${Y(ev.answer)}\nverify: ${vf}\nprereq_prior: ${prereqPrior}${weak ? "\n\n" + weak : ""}`;
 };
 
 async function askConvo() {
@@ -102,6 +126,12 @@ const MISTAKE_TYPES = {
   check:     { label: "검산 누락" },
   etc:       { label: "기타" },
 };
+const STAGE_LABELS = {
+  nostart: "시작 전", comprehension: "문제 이해",
+  transform: "방법 선택", process: "계산 진행", encoding: "표기·검산",
+};
+const CHAIN_LABELS = { ...STAGE_LABELS, prerequisite: "선행 개념 부족" };
+const CHAIN_HINT_LEN = { nostart: 2, comprehension: 3, transform: 4, process: 3, encoding: 2, prerequisite: 2 };
 const MKEY = "coach.mistakes.v1";
 const mtype = (t) => (MISTAKE_TYPES[t] ? t : "etc");
 function loadMistakes() { try { return JSON.parse(localStorage.getItem(MKEY) || "[]"); } catch (e) { return []; } }
@@ -157,41 +187,111 @@ function aiTurnHTML(d) {
     + blockHTML("accent coach-step", "이렇게 접근해 보자", d.approach)
     + blockHTML("warn coach-step", "다음 한 걸음", d.next_step)
     + (hints.length
-        ? `<div class="msg"><div class="msg-label">💡 힌트</div><div class="hint-list js-hints"></div>${hints.length > 1 ? `<button class="btn btn-soft btn-sm js-more">힌트 2 보기</button>` : ""}</div>`
+        ? `<div class="msg"><div class="msg-label">💡 힌트</div><div class="hint-list js-hints"></div><div class="hint-row">${hints.length > 1 ? `<button class="btn btn-soft btn-sm js-more">힌트 더 보기</button>` : ""}<button class="btn btn-primary btn-sm js-solo">이제 혼자 해볼게</button></div></div>`
         : "")
-    + `<div class="msg answer-wrap"><button class="btn btn-soft btn-sm js-showans">🔓 정답 방향 펼치기</button><div class="answer hidden js-answer"></div></div>`
+    + `<div class="msg answer-wrap"><button class="btn btn-soft btn-sm js-showans" disabled title="힌트를 모두 본 뒤에 열 수 있어요">🔓 정답 방향 펼치기</button><div class="answer hidden js-answer"></div></div>`
     + `</div>`;
 }
 
-// 턴별로 버튼을 연결(여러 턴이 쌓여도 ID 충돌 없게 element 기준으로)
-function wireTurn(turnEl, d) {
-  const hints = Array.isArray(d.hints) ? d.hints.filter(Boolean) : [];
-  const hintBox = turnEl.querySelector(".js-hints");
-  if (hintBox) {
-    let level = 1;
-    const more = turnEl.querySelector(".js-more");
-    const paint = () => {
-      hintBox.innerHTML = hints.slice(0, level).map((h) => `<div class="hint">${esc(h)}</div>`).join("");
-      typeset(hintBox);
-      if (more) {
-        if (level >= hints.length) {
-          more.textContent = "힌트 모두 봄";
-          more.disabled = true;
-        } else {
-          more.textContent = `힌트 ${level + 1} 보기`;
-          more.disabled = false;
-        }
-      }
-    };
-    paint();
-    if (more) more.onclick = () => { level = Math.min(level + 1, hints.length); paint(); };
+// 에피소드 추적: 현재 열려 있는 턴의 에피소드 데이터
+let _pendingEpisode = null;
+
+function closePendingEpisode() {
+  if (_pendingEpisode && typeof closeEpisode === "function") {
+    closeEpisode(Object.assign({}, _pendingEpisode, { resolved: false }));
+    _pendingEpisode = null;
   }
+}
+
+// 턴별로 버튼을 연결(에피소드 추적 포함)
+function wireTurn(turnEl, d) {
+  const hints   = Array.isArray(d.hints) ? d.hints.filter(Boolean) : [];
+  const chain   = typeof chainOf === "function" ? chainOf(d.stage, d.prereq) : "nostart";
+  const entry   = typeof entryFor === "function" ? entryFor(chain) : 1;
+  const tech    = d.technique || "other";
+
+  let level           = Math.min(entry, hints.length);
+  let used            = level;
+  let answerRequested = 0;
+  let blindRequests   = 0;
+  let soloClicked     = false;
+  let prevAttempted   = false;
+
+  const epData = typeof openEpisode === "function"
+    ? openEpisode(tech, chain, entry)
+    : { pid: "default", tech, chain, entry, used: entry, consumed: 0, resolved: false,
+        answerRequested: 0, blindRequests: 0, verify: "na", t: Date.now() };
+  _pendingEpisode = epData;
+
+  const hintBox = turnEl.querySelector(".js-hints");
+  const more    = turnEl.querySelector(".js-more");
+  const solo    = turnEl.querySelector(".js-solo");
   const showAns = turnEl.querySelector(".js-showans");
-  const ans = turnEl.querySelector(".js-answer");
-  if (showAns) showAns.onclick = () => {
-    ans.classList.toggle("hidden");
-    if (!ans.dataset.done) { ans.innerHTML = esc(d.answer || "이 문제는 직접 조금 더 시도해보자!"); typeset(ans); ans.dataset.done = "1"; }
+  const ans     = turnEl.querySelector(".js-answer");
+
+  const paint = () => {
+    if (hintBox) {
+      // 진입점부터 시작 (앞 단계 건너뜀)
+      hintBox.innerHTML = hints.slice(entry - 1, level)
+        .map((h) => `<div class="hint">${esc(h)}</div>`).join("");
+      typeset(hintBox);
+    }
+    if (more) {
+      if (level >= hints.length) {
+        more.textContent = "힌트 모두 봄";
+        more.disabled = true;
+      } else {
+        more.textContent = `힌트 ${level + 1} 보기`;
+        more.disabled = false;
+      }
+    }
+    if (showAns) {
+      const allSeen = level >= hints.length;
+      showAns.disabled = !allSeen;
+      showAns.title = allSeen ? "" : "힌트를 모두 본 뒤에 열 수 있어요";
+    }
   };
+
+  paint();
+
+  if (more) more.onclick = () => {
+    if (!prevAttempted) blindRequests++;
+    prevAttempted = true;
+    level = Math.min(level + 1, hints.length);
+    used  = Math.max(used, level);
+    epData.used         = used;
+    epData.blindRequests = blindRequests;
+    paint();
+  };
+
+  if (solo) solo.onclick = () => {
+    if (soloClicked) return;
+    soloClicked = true;
+    solo.disabled    = true;
+    solo.textContent = "혼자 해보는 중 ✓";
+    if (more) more.disabled = true;
+    const rec = Object.assign({}, epData, {
+      used, consumed: Math.max(0, used - entry + 1),
+      resolved: true, answerRequested, blindRequests,
+      verify: d.verify || "na",
+    });
+    if (typeof closeEpisode === "function") closeEpisode(rec);
+    _pendingEpisode = null;
+  };
+
+  if (showAns) showAns.onclick = () => {
+    answerRequested++;
+    epData.answerRequested = answerRequested;
+    if (ans) {
+      ans.classList.toggle("hidden");
+      if (!ans.dataset.done) {
+        ans.innerHTML = esc(d.answer || "이 문제는 직접 조금 더 시도해보자!");
+        typeset(ans);
+        ans.dataset.done = "1";
+      }
+    }
+  };
+
   typeset(turnEl);
 }
 
@@ -215,6 +315,7 @@ function trimImageAfterRead(d) {
 
 // 코치 응답을 스레드에 한 칸 추가 + 그래프 갱신 + 이어가기 입력 표시
 function appendAi(d) {
+  closePendingEpisode();  // 직전 턴이 아직 열려 있으면 resolved:false 로 닫음
   renderPersonalBadge();
   renderViz(d.viz);
   const wrap = document.createElement("div");
@@ -228,6 +329,7 @@ function appendAi(d) {
   if (fb) fb.classList.remove("hidden");
   turnEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
   if (d.mistake && d.mistake.type && d.mistake.type !== "none") { recordMistake(d.mistake); renderMistakeNote(); }
+  if (d._chainMismatch) console.warn("chain mismatch", d._chainMismatch);
 }
 
 // 새 문제로 스레드 시작(이전 대화 비움). 문제 사진(problemImage)이 있으면 첫 메시지에 첨부.
@@ -482,7 +584,20 @@ function renderMistakeNote() {
 
   const top = rows[0];
   const sum = $("mnSummary");
-  if (sum) sum.innerHTML = `지금까지 <b>${list.length}</b>번 기록 · 가장 잦은 실수: <b>${MISTAKE_TYPES[top[0]].label}</b> (${top[1]}회) · 다음 코칭에 반영`;
+  const entryInfo = (() => {
+    if (typeof loadEntries !== "function") return "";
+    const entries = loadEntries();
+    return Object.keys(CHAIN_HINT_LEN)
+      .filter((c) => CHAIN_LABELS[c])
+      .map((c) => {
+        const e = entries[c];
+        if (e == null) return null;
+        return `${CHAIN_LABELS[c]} ${e}/${CHAIN_HINT_LEN[c] - 1}`;
+      })
+      .filter(Boolean).join(" · ");
+  })();
+  if (sum) sum.innerHTML = `지금까지 <b>${list.length}</b>번 기록 · 가장 잦은 실수: <b>${MISTAKE_TYPES[top[0]].label}</b> (${top[1]}회) · 다음 코칭에 반영`
+    + (entryInfo ? `<br><small style="opacity:.7">${esc(entryInfo)}</small>` : "");
 
   if (!el || !window.Plotly) return;
   const A = getCSS("--accent");
@@ -618,7 +733,10 @@ function boot() {
     if (!v) { setFollowMsg("해본 내용이나 지금 막힌 곳을 한 줄 적어줘.", true); return; }
     const bubble = appendUserBubble(v);
     const weak = weaknessText();
-    const userTurn = { role: "user", text: `[코치가 준 '다음 한 걸음'을 해본 결과 / 지금 막힌 곳]\n${v}${weak ? "\n\n" + weak : ""}` };
+    const ev2   = typeof extractEvidence === "function" ? extractEvidence(v) : { goal: false, method: false, expr: false, partial: false, answer: false };
+    const vf2   = tryVerify(convo[0] ? convo[0].text : "", v);
+    const codePart = `\n\n[코드 판정]\nevidence: goal=${Y(ev2.goal)} method=${Y(ev2.method)} expr=${Y(ev2.expr)} partial=${Y(ev2.partial)} answer=${Y(ev2.answer)}\nverify: ${vf2}`;
+    const userTurn = { role: "user", text: `[코치가 준 '다음 한 걸음'을 해본 결과 / 지금 막힌 곳]\n${v}${codePart}${weak ? "\n\n" + weak : ""}` };
     convo.push(userTurn);
     $("followup").value = ""; livePreview($("followup"));
     setFollowMsg(LOADING()); fgo.disabled = true;
@@ -690,6 +808,36 @@ function boot() {
   // 실수 노트: 지우기 버튼 + 누적 통계 즉시 표시(돌아온 학생도 바로 약점이 보이게)
   const mnc = $("mnClear");
   if (mnc) mnc.onclick = () => { if (confirm("이 기기에 쌓인 실수 기록을 모두 지울까요?")) { clearMistakes(); renderMistakeNote(); renderPersonalBadge(); } };
+
+  // 실험 데이터 내보내기
+  const mnExport = $("mnExport");
+  if (mnExport) mnExport.onclick = () => { if (typeof exportEpisodesCSV === "function") exportEpisodesCSV(); };
+
+  // 온보딩: 참가자 코드 + 자기보고 저장
+  const onboardSave = $("onboardSave");
+  if (onboardSave) {
+    // 기존 값 복원
+    const pidInput = $("pid");
+    const storedPid = typeof _pid === "undefined" ? (localStorage.getItem("coach.pid") || "") : (localStorage.getItem("coach.pid") || "");
+    if (pidInput && storedPid) { pidInput.value = storedPid; }
+    const storedK = (() => { try { const p = storedPid || "default"; return JSON.parse(localStorage.getItem("coach.selfreport." + p) || "[]"); } catch(e) { return []; } })();
+    document.querySelectorAll("#onboard input[type=checkbox]").forEach((cb) => {
+      if (storedK.includes(cb.value)) cb.checked = true;
+    });
+    if (storedPid) { const ob = $("onboard"); if (ob) ob.classList.add("hidden"); }
+
+    onboardSave.onclick = () => {
+      const pidVal = pidInput ? pidInput.value.trim() : "";
+      if (typeof savePid === "function" && pidVal) savePid(pidVal);
+      else if (pidVal) localStorage.setItem("coach.pid", pidVal);
+      const checked = Array.from(document.querySelectorAll("#onboard input[type=checkbox]:checked")).map((cb) => cb.value);
+      if (typeof saveSelfReport === "function") saveSelfReport(checked);
+      else localStorage.setItem("coach.selfreport." + (pidVal || "default"), JSON.stringify(checked));
+      const ob = $("onboard");
+      if (ob) ob.classList.add("hidden");
+    };
+  }
+
   renderMistakeNote();
   renderPersonalBadge();
 }
