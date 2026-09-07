@@ -1,0 +1,652 @@
+<title>2027 수시 경쟁률 라이브</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f6f2e8;
+    --paper-raised:#fffdf9;
+    --ink-900:#1b1c22;
+    --ink-600:#4c4d54;
+    --muted:#847e6d;
+    --line:#ddd3ba;
+    --line-soft:#e9e1cd;
+    --navy-700:#1f3159;
+    --navy-600:#2c4576;
+    --navy-100:#e6ebf4;
+    --gold-600:#a1721f;
+    --gold-100:#f4e6c8;
+    --up:#a83a33;
+    --up-bg:#f6e2df;
+    --down:#2c69a3;
+    --down-bg:#dfebf6;
+    --shadow:0 1px 2px rgba(27,28,34,.05), 0 10px 28px -14px rgba(27,28,34,.28);
+    --radius:14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#14151a;
+      --paper-raised:#1c1e25;
+      --ink-900:#eeece4;
+      --ink-600:#c3c0b6;
+      --muted:#8f8b7d;
+      --line:#33343c;
+      --line-soft:#292a31;
+      --navy-700:#a9bde6;
+      --navy-600:#8ba6db;
+      --navy-100:#212a3d;
+      --gold-600:#dcae5c;
+      --gold-100:#372b16;
+      --up:#e0857c;
+      --up-bg:#3a2422;
+      --down:#82b3e3;
+      --down-bg:#1c2c3c;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.6);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#14151a;
+    --paper-raised:#1c1e25;
+    --ink-900:#eeece4;
+    --ink-600:#c3c0b6;
+    --muted:#8f8b7d;
+    --line:#33343c;
+    --line-soft:#292a31;
+    --navy-700:#a9bde6;
+    --navy-600:#8ba6db;
+    --navy-100:#212a3d;
+    --gold-600:#dcae5c;
+    --gold-100:#372b16;
+    --up:#e0857c;
+    --up-bg:#3a2422;
+    --down:#82b3e3;
+    --down-bg:#1c2c3c;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.6);
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--paper);
+    color:var(--ink-900);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,sans-serif;
+    line-height:1.45;
+  }
+  ::selection{background:var(--gold-100);}
+  .num{font-family:"IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums;}
+  a{color:inherit;}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px;}
+
+  /* ---------- Masthead ---------- */
+  .masthead{
+    display:flex; flex-wrap:wrap; gap:16px 28px;
+    justify-content:space-between; align-items:flex-end;
+    border-bottom:1px solid var(--line);
+    padding-bottom:20px; margin-bottom:22px;
+  }
+  .masthead h1{
+    font-family:"Newsreader", Georgia, serif;
+    font-weight:600; font-size:clamp(28px,4vw,40px);
+    letter-spacing:-.01em; margin:0 0 6px; text-wrap:balance;
+    color:var(--navy-700);
+  }
+  .masthead .eyebrow{
+    font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--gold-600); font-weight:600; margin-bottom:8px; display:block;
+  }
+  .masthead p{margin:0; color:var(--ink-600); font-size:14.5px; max-width:52ch;}
+  .live-ticker{
+    text-align:right; font-family:"IBM Plex Mono",monospace; font-size:12.5px;
+    color:var(--muted); white-space:nowrap;
+  }
+  .live-ticker .dot{
+    display:inline-block; width:7px; height:7px; border-radius:50%;
+    background:var(--up); margin-right:6px; box-shadow:0 0 0 3px var(--up-bg);
+    animation:pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1} 50%{opacity:.35}}
+  @media (prefers-reduced-motion: reduce){ .live-ticker .dot{animation:none} }
+  .live-ticker strong{color:var(--ink-900); display:block; font-size:14px; margin-top:2px;}
+
+  /* ---------- Tabs ---------- */
+  .tabs{
+    display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-bottom:22px;
+  }
+  @media (max-width:820px){ .tabs{grid-template-columns:repeat(3,1fr);} }
+  @media (max-width:520px){ .tabs{grid-template-columns:repeat(2,1fr);} }
+  .tab{
+    background:var(--paper-raised); border:1px solid var(--line);
+    border-radius:12px; padding:11px 12px; cursor:pointer; text-align:left;
+    display:flex; flex-direction:column; gap:5px; transition:border-color .15s, transform .1s;
+    font-family:inherit;
+  }
+  .tab:hover{border-color:var(--navy-600);}
+  .tab:focus-visible{outline:2px solid var(--navy-600); outline-offset:2px;}
+  .tab.active{border-color:var(--navy-600); box-shadow:var(--shadow); background:var(--navy-100);}
+  .tab .tname{font-weight:600; font-size:13.5px; color:var(--ink-900);}
+  .tab .tstatus{font-size:10.5px; letter-spacing:.03em; font-weight:600; padding:2px 7px; border-radius:99px; width:fit-content;}
+  .st-open{background:var(--up-bg); color:var(--up);}
+  .st-soon{background:var(--gold-100); color:var(--gold-600);}
+  .st-closed{background:var(--line-soft); color:var(--muted);}
+
+  /* ---------- Panel ---------- */
+  .panel{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:22px 22px 8px; margin-bottom:20px;
+  }
+  .panel-head{
+    display:flex; flex-wrap:wrap; justify-content:space-between; gap:14px 24px;
+    padding-bottom:16px; border-bottom:1px solid var(--line-soft); margin-bottom:16px;
+  }
+  .panel-head h2{
+    font-family:"Newsreader", serif; font-weight:600; font-size:23px; margin:0 0 4px;
+  }
+  .panel-meta{font-size:12.5px; color:var(--muted); display:flex; gap:14px; flex-wrap:wrap;}
+  .panel-meta a{color:var(--navy-600); text-decoration:none; border-bottom:1px dotted var(--navy-600);}
+  .badge-highlight{
+    display:inline-flex; align-items:center; gap:6px; background:var(--gold-100); color:var(--gold-600);
+    border-radius:99px; padding:6px 13px; font-size:12.5px; font-weight:600; height:fit-content;
+  }
+
+  .empty-state{
+    padding:34px 10px 40px; text-align:center; color:var(--ink-600);
+  }
+  .empty-state .icon{font-size:26px; margin-bottom:10px; display:block;}
+  .empty-state h3{font-family:"Newsreader",serif; font-size:19px; margin:0 0 8px; color:var(--navy-700);}
+  .empty-state p{max-width:46ch; margin:0 auto 14px; font-size:13.5px;}
+  .empty-state .depts{
+    display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:16px;
+  }
+  .empty-state .depts span{
+    background:var(--navy-100); color:var(--navy-700); font-size:12.5px; font-weight:600;
+    padding:5px 12px; border-radius:99px;
+  }
+
+  /* ---------- Controls ---------- */
+  .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:14px;}
+  .chip-row{display:flex; flex-wrap:wrap; gap:6px; flex:1 1 auto;}
+  .chip{
+    border:1px solid var(--line); background:var(--paper); color:var(--ink-600);
+    font-size:12.5px; padding:6px 12px; border-radius:99px; cursor:pointer;
+    font-family:inherit; white-space:nowrap;
+  }
+  .chip:hover{border-color:var(--navy-600);}
+  .chip.active{background:var(--navy-600); border-color:var(--navy-600); color:#fff;}
+  .chip.highlight{border-color:var(--gold-600); color:var(--gold-600); font-weight:600;}
+  .chip.highlight.active{background:var(--gold-600); border-color:var(--gold-600); color:#221a08;}
+  .search{
+    border:1px solid var(--line); background:var(--paper); border-radius:10px;
+    padding:7px 12px; font-size:13px; color:var(--ink-900); font-family:inherit;
+    min-width:160px;
+  }
+  .search:focus{outline:none; border-color:var(--navy-600);}
+
+  /* ---------- Table ---------- */
+  .table-scroll{overflow-x:auto; border:1px solid var(--line-soft); border-radius:10px; margin-bottom:22px;}
+  table{width:100%; border-collapse:collapse; font-size:13px; min-width:560px;}
+  thead th{
+    position:sticky; top:0; background:var(--navy-100); color:var(--navy-700);
+    text-align:left; font-weight:600; font-size:11.5px; letter-spacing:.03em; text-transform:uppercase;
+    padding:9px 12px; cursor:pointer; user-select:none; white-space:nowrap;
+  }
+  thead th.num-col, td.num-col{text-align:right;}
+  thead th .arrow{opacity:.5; font-size:10px; margin-left:3px;}
+  tbody tr{border-top:1px solid var(--line-soft);}
+  tbody tr:hover{background:var(--navy-100);}
+  td{padding:8px 12px; vertical-align:middle; color:var(--ink-900);}
+  td.college{color:var(--muted); font-size:12px;}
+  td.ratio-cell{display:flex; align-items:center; gap:8px; justify-content:flex-end;}
+  .ratio-bar{
+    width:56px; height:6px; border-radius:99px; background:var(--line-soft); overflow:hidden; flex-shrink:0;
+  }
+  .ratio-bar > span{display:block; height:100%; background:var(--navy-600); border-radius:99px;}
+  .ratio-bar.hot > span{background:var(--up);}
+  .row-count{font-size:12px; color:var(--muted); margin:-6px 0 12px;}
+
+  /* ---------- Trend ---------- */
+  .trend-section{padding:4px 0 20px;}
+  .trend-head{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;}
+  .trend-head h3{font-family:"Newsreader",serif; font-size:17px; margin:0; font-weight:600;}
+  select.trend-select{
+    border:1px solid var(--line); background:var(--paper); color:var(--ink-900);
+    border-radius:8px; padding:6px 10px; font-size:12.5px; font-family:inherit; max-width:260px;
+  }
+  .trend-chart-box{border:1px solid var(--line-soft); border-radius:10px; padding:14px 16px 8px; background:var(--paper);}
+  .trend-note{font-size:12px; color:var(--muted); margin-top:6px;}
+  svg.trend-svg text{font-family:"IBM Plex Mono",monospace; fill:var(--muted);}
+  svg.trend-svg .gridline{stroke:var(--line-soft); stroke-width:1;}
+  svg.trend-svg .line-path{fill:none; stroke:var(--navy-600); stroke-width:2.2; stroke-linejoin:round; stroke-linecap:round;}
+  svg.trend-svg .area-path{fill:var(--navy-600); opacity:.08;}
+  svg.trend-svg .dot{fill:var(--paper-raised); stroke:var(--navy-600); stroke-width:2;}
+  svg.trend-svg .dot.end{fill:var(--up); stroke:var(--up);}
+
+  footer{
+    margin-top:30px; padding-top:18px; border-top:1px solid var(--line);
+    font-size:12px; color:var(--muted); display:flex; flex-direction:column; gap:6px;
+  }
+  footer a{color:var(--navy-600);}
+
+  .sr-only{position:absolute; width:1px;height:1px; overflow:hidden; clip:rect(0,0,0,0);}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <span class="eyebrow">2027학년도 수시모집</span>
+      <h1>실시간 경쟁률 라이브</h1>
+      <p>서울대·연세대·고려대·서강대·성균관대·한양대(서울) 6개교의 진학어플라이·유웨이어플라이 경쟁률 서비스를 30분 간격으로 수집해 표와 추세로 보여줍니다.</p>
+    </div>
+    <div class="live-ticker">
+      <span><span class="dot"></span>최근 수집</span>
+      <strong id="global-updated">—</strong>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs" role="tablist" aria-label="대학 선택"></nav>
+
+  <section class="panel" id="panel"></section>
+
+  <footer>
+    <div>데이터 출처: 각 대학의 진학어플라이(addon.jinhakapply.com)·유웨이어플라이(ratio.uwayapply.com) 경쟁률 서비스 원문 페이지를 그대로 가져와 파싱합니다. 최종 수치는 원문 페이지에서 다시 확인하세요.</div>
+    <div>서울대학교는 위 두 업체를 통하지 않고 자체 PDF로 지원 현황을 게시하며, 30분 단위 실시간이 아니라 대학이 지정한 시각에만 갱신됩니다.</div>
+    <div id="footer-links"></div>
+  </footer>
+</div>
+
+<script id="fallback-data" type="application/json">__FALLBACK_DATA__</script>
+<script>
+(function(){
+  "use strict";
+
+  var UNIVS = [
+    {key:"seoul",  short:"서울대"},
+    {key:"yonsei", short:"연세대"},
+    {key:"korea",  short:"고려대"},
+    {key:"sogang", short:"서강대"},
+    {key:"skku",   short:"성균관대"},
+    {key:"hanyang",short:"한양대"}
+  ];
+
+  var state = {
+    latest: {},   // key -> latest doc
+    trend: {},    // key -> trend doc
+    activeKey: "yonsei",
+    filterType: null,   // null = 전체
+    search: "",
+    sort: {field:"ratio", dir:"desc"},
+    trendType: null
+  };
+
+  // ---- load fallback (baked-in) data so the page is never empty on first paint ----
+  try {
+    var fb = JSON.parse(document.getElementById("fallback-data").textContent);
+    Object.keys(fb).forEach(function(k){
+      state.latest[k] = fb[k].latest;
+      state.trend[k] = fb[k].trend;
+    });
+  } catch (e) { console.error("fallback parse failed", e); }
+
+  function fmtKST(iso){
+    if (!iso) return "—";
+    try{
+      var d = new Date(iso);
+      return new Intl.DateTimeFormat("ko-KR", {
+        timeZone:"Asia/Seoul", month:"numeric", day:"numeric",
+        hour:"2-digit", minute:"2-digit", hour12:false
+      }).format(d) + " KST";
+    }catch(e){ return iso; }
+  }
+  function fmtKSTShort(iso){
+    try{
+      var d = new Date(iso);
+      return new Intl.DateTimeFormat("ko-KR", {
+        timeZone:"Asia/Seoul", hour:"2-digit", minute:"2-digit", hour12:false
+      }).format(d);
+    }catch(e){ return ""; }
+  }
+
+  function applyStatus(doc){
+    if (!doc) return {label:"—", cls:"st-closed"};
+    var now = new Date();
+    var from = doc.apply_from ? new Date(doc.apply_from) : null;
+    var to = doc.apply_to ? new Date(doc.apply_to) : null;
+    if (from && now < from) return {label:"접수예정", cls:"st-soon"};
+    if (to && now > to) return {label:"접수마감", cls:"st-closed"};
+    return {label:"접수중", cls:"st-open"};
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  // ---------------- Tabs ----------------
+  function renderTabs(){
+    var el = document.getElementById("tabs");
+    el.innerHTML = "";
+    UNIVS.forEach(function(u){
+      var doc = state.latest[u.key];
+      var st = applyStatus(doc);
+      var btn = document.createElement("button");
+      btn.className = "tab" + (state.activeKey === u.key ? " active" : "");
+      btn.setAttribute("role","tab");
+      btn.setAttribute("aria-selected", state.activeKey === u.key ? "true" : "false");
+      btn.innerHTML =
+        '<span class="tname">' + escapeHtml((doc && doc.name) || u.short) + '</span>' +
+        '<span class="tstatus ' + st.cls + '">' + st.label + '</span>';
+      btn.addEventListener("click", function(){
+        state.activeKey = u.key;
+        state.filterType = null;
+        state.search = "";
+        state.sort = {field:"ratio", dir:"desc"};
+        state.trendType = null;
+        renderTabs();
+        renderPanel();
+      });
+      el.appendChild(btn);
+    });
+  }
+
+  // ---------------- Panel ----------------
+  function uniqueTypes(rows){
+    var seen = [], out = [];
+    rows.forEach(function(r){
+      if (seen.indexOf(r.admission_type) === -1){ seen.push(r.admission_type); out.push(r.admission_type); }
+    });
+    return out;
+  }
+
+  function renderEmptySeoul(doc){
+    var panel = document.getElementById("panel");
+    var depts = (doc && doc.target_depts) || ["산업공학과","컴퓨터공학부","첨단융합학부"];
+    panel.innerHTML =
+      '<div class="panel-head">' +
+        '<div><h2>서울대학교</h2><div class="panel-meta"><span>수시모집 2026-09-07 ~ 09-09</span></div></div>' +
+      '</div>' +
+      '<div class="empty-state">' +
+        '<span class="icon">＊</span>' +
+        '<h3>서울대는 진학어플라이·유웨이어플라이를 통해 경쟁률을 제공하지 않습니다</h3>' +
+        '<p>서울대학교는 자체 PDF(입학본부 홈페이지)로 지원 현황을 게시하며, 30분 단위 실시간이 아니라 대학이 지정한 시각에만 갱신됩니다. 오늘(9/7) 최초 게시 예정 시각은 15:00입니다. 관심 모집단위:</p>' +
+        '<div class="depts">' + depts.map(function(d){ return "<span>" + escapeHtml(d) + "</span>"; }).join("") + '</div>' +
+        '<p><a href="https://www.snu.ac.kr/webdata/admission/files/2027S_SNUrate.pdf" target="_blank" rel="noopener">원문 PDF 새 창으로 열기 →</a></p>' +
+      '</div>';
+  }
+
+  function renderPanel(){
+    var key = state.activeKey;
+    var doc = state.latest[key];
+
+    if (key === "seoul" || !doc || !doc.rows || !doc.rows.length){
+      renderEmptySeoul(doc);
+      return;
+    }
+
+    var rows = doc.rows;
+    var types = uniqueTypes(rows);
+    var highlightTypes = (doc.highlight_type || []).filter(function(t){ return types.indexOf(t) !== -1; });
+    // 관심 전형이 하나뿐이면 처음부터 그 전형으로 좁혀서 보여준다.
+    // 두 개 이상이면(예: 고려대 학업우수+계열적합) 전체를 보여주고 칩만 금색으로 표시한다.
+    if (state.filterType === null && highlightTypes.length === 1){
+      state.filterType = highlightTypes[0];
+    }
+
+    var panel = document.getElementById("panel");
+    var st = applyStatus(doc);
+
+    var head =
+      '<div class="panel-head">' +
+        '<div>' +
+          '<h2>' + escapeHtml(doc.name) + '</h2>' +
+          '<div class="panel-meta">' +
+            '<span class="tstatus ' + st.cls + '" style="display:inline-block;">' + st.label + '</span>' +
+            '<span>접수기간 ' + fmtKST(doc.apply_from).replace(" KST","") + ' ~ ' + fmtKST(doc.apply_to) + '</span>' +
+            '<span>이 회차 수집 ' + fmtKST(doc.collected_at) + '</span>' +
+            '<a href="' + doc.url + '" target="_blank" rel="noopener">원문 페이지 →</a>' +
+          '</div>' +
+        '</div>' +
+        (highlightTypes.length ? '<span class="badge-highlight">★ 관심 전형 · ' + escapeHtml(highlightTypes.join(" · ")) + '</span>' : '') +
+      '</div>';
+
+    var chipsHtml = '<button class="chip' + (state.filterType===null?' active':'') + '" data-type="">전체 전형 (' + rows.length + ')</button>';
+    types.forEach(function(t){
+      var count = rows.filter(function(r){return r.admission_type===t;}).length;
+      var isHi = highlightTypes.indexOf(t) !== -1;
+      chipsHtml += '<button class="chip' + (isHi?' highlight':'') + (state.filterType===t?' active':'') + '" data-type="' + escapeHtml(t) + '">' +
+        (isHi ? "★ " : "") + escapeHtml(t) + ' (' + count + ')</button>';
+    });
+
+    var controls =
+      '<div class="controls">' +
+        '<div class="chip-row" id="chip-row">' + chipsHtml + '</div>' +
+        '<input class="search" id="search-box" type="search" placeholder="학과·모집단위 검색" value="' + escapeHtml(state.search) + '">' +
+      '</div>';
+
+    panel.innerHTML = head + controls +
+      '<div class="row-count" id="row-count"></div>' +
+      '<div class="table-scroll"><table id="ratio-table"></table></div>' +
+      '<div class="trend-section">' +
+        '<div class="trend-head">' +
+          '<h3>전형별 추세 (지원인원 합계 → 경쟁률)</h3>' +
+          '<select class="trend-select" id="trend-select"></select>' +
+        '</div>' +
+        '<div class="trend-chart-box" id="trend-chart"></div>' +
+      '</div>';
+
+    document.getElementById("chip-row").addEventListener("click", function(e){
+      var b = e.target.closest(".chip");
+      if (!b) return;
+      state.filterType = b.getAttribute("data-type") || null;
+      renderPanel();
+    });
+    document.getElementById("search-box").addEventListener("input", function(e){
+      state.search = e.target.value;
+      renderTable();
+    });
+
+    renderTable();
+    renderTrendControls();
+  }
+
+  function currentRows(){
+    var doc = state.latest[state.activeKey];
+    if (!doc) return [];
+    var rows = doc.rows.slice();
+    if (state.filterType) rows = rows.filter(function(r){ return r.admission_type === state.filterType; });
+    if (state.search && state.search.trim()){
+      var q = state.search.trim().toLowerCase();
+      rows = rows.filter(function(r){
+        return (r.department||"").toLowerCase().indexOf(q) !== -1 ||
+               (r.college||"").toLowerCase().indexOf(q) !== -1;
+      });
+    }
+    var f = state.sort.field, dir = state.sort.dir === "asc" ? 1 : -1;
+    rows.sort(function(a,b){
+      var av = a[f], bv = b[f];
+      if (av === null || av === undefined) av = -Infinity;
+      if (bv === null || bv === undefined) bv = -Infinity;
+      if (typeof av === "string") return av.localeCompare(bv) * dir;
+      return (av - bv) * dir;
+    });
+    return rows;
+  }
+
+  function sortArrow(field){
+    if (state.sort.field !== field) return "";
+    return '<span class="arrow">' + (state.sort.dir === "asc" ? "▲" : "▼") + '</span>';
+  }
+
+  function renderTable(){
+    var rows = currentRows();
+    document.getElementById("row-count").textContent = rows.length + "개 모집단위";
+    var maxRatio = rows.reduce(function(m,r){ return Math.max(m, r.ratio||0); }, 1);
+
+    var cols = [
+      {f:"college", label:"단과대/계열", num:false},
+      {f:"department", label:"모집단위", num:false},
+      {f:"capacity", label:"모집인원", num:true},
+      {f:"applied", label:"지원인원", num:true},
+      {f:"ratio", label:"경쟁률", num:true}
+    ];
+    var thead = "<thead><tr>" + cols.map(function(c){
+      return '<th class="' + (c.num?"num-col":"") + '" data-field="' + c.f + '">' + c.label + sortArrow(c.f) + '</th>';
+    }).join("") + "</tr></thead>";
+
+    var tbody = "<tbody>" + rows.map(function(r){
+      var ratio = r.ratio;
+      var ratioTxt = (ratio === null || ratio === undefined) ? "—" : ratio.toFixed(2) + " : 1";
+      var barPct = ratio ? Math.min(100, (ratio / maxRatio) * 100) : 0;
+      var hot = ratio && ratio >= 3 ? " hot" : "";
+      return "<tr>" +
+        '<td class="college">' + escapeHtml(r.college || "") + "</td>" +
+        "<td>" + escapeHtml(r.department || "") + "</td>" +
+        '<td class="num num-col">' + (r.capacity ?? r.capacity_raw ?? "—") + "</td>" +
+        '<td class="num num-col">' + (r.applied ?? "—") + "</td>" +
+        '<td class="num-col"><div class="ratio-cell"><span class="num">' + ratioTxt + '</span>' +
+          '<span class="ratio-bar' + hot + '"><span style="width:' + barPct + '%"></span></span></div></td>' +
+        "</tr>";
+    }).join("") + "</tbody>";
+
+    var table = document.getElementById("ratio-table");
+    table.innerHTML = thead + tbody;
+    table.querySelector("thead").addEventListener("click", function(e){
+      var th = e.target.closest("th");
+      if (!th) return;
+      var f = th.getAttribute("data-field");
+      if (state.sort.field === f) state.sort.dir = state.sort.dir === "asc" ? "desc" : "asc";
+      else state.sort = {field:f, dir:"desc"};
+      renderTable();
+    });
+  }
+
+  // ---------------- Trend ----------------
+  function renderTrendControls(){
+    var doc = state.latest[state.activeKey];
+    var trend = state.trend[state.activeKey];
+    var types = uniqueTypes(doc.rows);
+    if (!state.trendType || types.indexOf(state.trendType) === -1){
+      var firstHi = (doc.highlight_type || []).filter(function(t){ return types.indexOf(t) !== -1; })[0];
+      state.trendType = firstHi || types[0];
+    }
+    var sel = document.getElementById("trend-select");
+    sel.innerHTML = types.map(function(t){
+      return '<option value="' + escapeHtml(t) + '"' + (t===state.trendType?" selected":"") + '>' + escapeHtml(t) + '</option>';
+    }).join("");
+    sel.addEventListener("change", function(){
+      state.trendType = sel.value;
+      renderTrendChart();
+    });
+    renderTrendChart();
+  }
+
+  function renderTrendChart(){
+    var box = document.getElementById("trend-chart");
+    var trend = state.trend[state.activeKey];
+    var history = (trend && trend.history) || [];
+    var series = history
+      .map(function(h){ return {t:h.t, v: h.by_type && h.by_type[state.trendType] }; })
+      .filter(function(p){ return p.v && p.v.ratio !== null && p.v.ratio !== undefined; });
+
+    if (series.length < 2){
+      box.innerHTML = '<div class="trend-note">데이터가 쌓이는 중입니다 (현재 ' + series.length + '개 시점). 30분 간격으로 갱신되면 이 자리에 추세선이 나타납니다.</div>';
+      return;
+    }
+
+    var W = 900, H = 220, padL = 46, padR = 16, padT = 16, padB = 30;
+    var innerW = W - padL - padR, innerH = H - padT - padB;
+    var maxV = Math.max.apply(null, series.map(function(p){return p.v.ratio;})) * 1.15 || 1;
+    var minV = 0;
+
+    function x(i){ return padL + (i/(series.length-1)) * innerW; }
+    function y(v){ return padT + innerH - ((v-minV)/(maxV-minV||1)) * innerH; }
+
+    var pathD = series.map(function(p,i){ return (i===0?"M":"L") + x(i).toFixed(1) + "," + y(p.v.ratio).toFixed(1); }).join(" ");
+    var areaD = pathD + " L" + x(series.length-1).toFixed(1) + "," + (padT+innerH) + " L" + x(0).toFixed(1) + "," + (padT+innerH) + " Z";
+
+    var gridLines = "", gridLabels = "";
+    var steps = 4;
+    for (var s=0; s<=steps; s++){
+      var v = (maxV/steps)*s;
+      var gy = y(v);
+      gridLines += '<line class="gridline" x1="' + padL + '" x2="' + (W-padR) + '" y1="' + gy.toFixed(1) + '" y2="' + gy.toFixed(1) + '"/>';
+      gridLabels += '<text x="' + (padL-8) + '" y="' + (gy+4).toFixed(1) + '" text-anchor="end" font-size="10.5">' + v.toFixed(1) + '</text>';
+    }
+
+    var xTickIdx = [0, Math.floor((series.length-1)/2), series.length-1];
+    var xLabels = xTickIdx.map(function(i){
+      return '<text x="' + x(i).toFixed(1) + '" y="' + (H-8) + '" text-anchor="middle" font-size="10.5">' + fmtKSTShort(series[i].t) + '</text>';
+    }).join("");
+
+    var dots = series.map(function(p,i){
+      var cls = (i===series.length-1) ? "dot end" : "dot";
+      return '<circle class="' + cls + '" cx="' + x(i).toFixed(1) + '" cy="' + y(p.v.ratio).toFixed(1) + '" r="' + (i===series.length-1?4:2.6) + '"/>';
+    }).join("");
+
+    var last = series[series.length-1].v;
+
+    box.innerHTML =
+      '<svg class="trend-svg" viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="220" role="img" aria-label="' + escapeHtml(state.trendType) + ' 경쟁률 추세">' +
+        gridLines + gridLabels +
+        '<path class="area-path" d="' + areaD + '"/>' +
+        '<path class="line-path" d="' + pathD + '"/>' +
+        dots +
+        xLabels +
+      '</svg>' +
+      '<div class="trend-note">최근 지원 ' + (last.applied ?? "—") + '명 · 모집 ' + (last.capacity ?? "—") + '명 · 경쟁률 ' + (last.ratio!=null?last.ratio.toFixed(2):"—") + ' : 1 · ' + series.length + '개 시점 수집됨</div>';
+  }
+
+  // ---------------- Global ticker / footer ----------------
+  function renderGlobal(){
+    var latest = null;
+    UNIVS.forEach(function(u){
+      var d = state.latest[u.key];
+      if (d && d.collected_at){
+        if (!latest || new Date(d.collected_at) > new Date(latest)) latest = d.collected_at;
+      }
+    });
+    document.getElementById("global-updated").textContent = latest ? fmtKST(latest) : "수집 대기 중";
+
+    var links = UNIVS.map(function(u){
+      var d = state.latest[u.key];
+      if (!d || !d.url) return "";
+      return '<a href="' + d.url + '" target="_blank" rel="noopener">' + escapeHtml(d.name) + ' 원문</a>';
+    }).filter(Boolean).join(" · ");
+    document.getElementById("footer-links").innerHTML = links;
+  }
+
+  function renderAll(){
+    renderTabs();
+    renderPanel();
+    renderGlobal();
+  }
+
+  renderAll();
+
+  // ---------------- Live db subscriptions (override fallback as data arrives) ----------------
+  if (window.claude && typeof window.claude.use === "function"){
+    window.claude.use("db").then(function(db){
+      if (!db) return;
+      UNIVS.forEach(function(u){
+        db.doc("latest/" + u.key).onSnapshot(function(snap){
+          if (snap.exists){
+            state.latest[u.key] = snap.data();
+            renderTabs();
+            if (state.activeKey === u.key) renderPanel();
+            renderGlobal();
+          }
+        }, function(err){ console.warn("latest snapshot error", u.key, err); });
+
+        db.doc("trend/" + u.key).onSnapshot(function(snap){
+          if (snap.exists){
+            state.trend[u.key] = snap.data();
+            if (state.activeKey === u.key) renderTrendChart();
+          }
+        }, function(err){ console.warn("trend snapshot error", u.key, err); });
+      });
+    }).catch(function(e){ console.warn("db unavailable", e); });
+  }
+})();
+</script>
