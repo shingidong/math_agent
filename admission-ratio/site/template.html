@@ -380,7 +380,7 @@
     var key = state.activeKey;
     var doc = state.latest[key];
 
-    if (key === "seoul" || !doc || !doc.rows || !doc.rows.length){
+    if (!doc || !doc.rows || !doc.rows.length){
       renderEmptySeoul(doc);
       return;
     }
@@ -407,6 +407,7 @@
             '<span>이 회차 수집 ' + fmtKST(doc.collected_at) + '</span>' +
             '<a href="' + doc.url + '" target="_blank" rel="noopener">원문 페이지 →</a>' +
           '</div>' +
+          (doc.note ? '<div class="panel-meta" style="margin-top:4px;">※ ' + escapeHtml(doc.note) + '</div>' : '') +
         '</div>' +
         (highlightTypes.length ? '<span class="badge-highlight">★ 관심 전형 · ' + escapeHtml(highlightTypes.join(" · ")) + '</span>' : '') +
       '</div>';
@@ -430,7 +431,7 @@
       '<div class="table-scroll"><table id="ratio-table"></table></div>' +
       '<div class="trend-section">' +
         '<div class="trend-head">' +
-          '<h3>전형별 추세 (지원인원 합계 → 경쟁률)</h3>' +
+          '<h3>' + (key === "seoul" ? "학과별 추세 (경쟁률)" : "전형별 추세 (지원인원 합계 → 경쟁률)") + '</h3>' +
           '<select class="trend-select" id="trend-select"></select>' +
         '</div>' +
         '<div class="trend-chart-box" id="trend-chart"></div>' +
@@ -523,10 +524,22 @@
   }
 
   // ---------------- Trend ----------------
+  // 서울대는 학과 3개만 다루므로 전형별이 아니라 학과별로 추세를 보여준다(그게 사용자가 궁금한 것).
+  function trendKeys(doc){
+    if (doc.key === "seoul"){
+      var seen = [], out = [];
+      doc.rows.forEach(function(r){
+        if (seen.indexOf(r.department) === -1){ seen.push(r.department); out.push(r.department); }
+      });
+      return out;
+    }
+    return uniqueTypes(doc.rows);
+  }
+
   function renderTrendControls(){
     var doc = state.latest[state.activeKey];
     var trend = state.trend[state.activeKey];
-    var types = uniqueTypes(doc.rows);
+    var types = trendKeys(doc);
     if (!state.trendType || types.indexOf(state.trendType) === -1){
       var firstHi = (doc.highlight_type || []).filter(function(t){ return types.indexOf(t) !== -1; })[0];
       state.trendType = firstHi || types[0];
